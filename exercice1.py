@@ -15,7 +15,7 @@ modules = {
     'Observatoire': (150, 20, 6)
 }
 """
-
+import math
 # -------------------------------------------------------------------
 # 1) Analyse des modules
 # -------------------------------------------------------------------
@@ -43,15 +43,29 @@ def analyser_modules(modules):
 
     # TODO 1 : Gérer le cas où le dictionnaire est vide
     # Dans ce cas, retourner stats tel quel
+    if len(modules) == 0:
+        return stats
 
     # TODO 2 : Parcourir les modules
     # - Identifier le module ayant le meilleur ratio criticite / temps_intervention
     #   ⚠️ Ignorer les modules avec temps_intervention == 0
     #   ⚠️ En cas d’égalité, conserver le premier module rencontré
+    ratio_meilleur = math.max([m_stats[2] / m_stats[1]] for m_stats in modules.values() if m_stats[1] > 0) 
+
+    for module, m_stats in modules.items():
+        if m_stats[2] / m_stats[1] == ratio_meilleur:
+            stats['module_plus_critique'] = module
+            break
+            
 
     # TODO 3 : Calculer les moyennes
     # - cout_moyen = somme_couts / nombre_modules
     # - temps_moyen = somme_temps / nombre_modules
+    somme_couts = math.fsum([m_stats[0]] for m_stats in modules.values())
+    somme_temps = math.fsum([m_stats[1]] for m_stats in modules.values())
+
+    stats['cout_moyen'] = somme_couts / len(modules)
+    stats['temps_moyen'] = somme_temps / len(modules)
 
     return stats
 
