@@ -50,7 +50,7 @@ def analyser_modules(modules):
     # - Identifier le module ayant le meilleur ratio criticite / temps_intervention
     #   ⚠️ Ignorer les modules avec temps_intervention == 0
     #   ⚠️ En cas d’égalité, conserver le premier module rencontré
-    ratio_meilleur = math.max([m_stats[2] / m_stats[1]] for m_stats in modules.values() if m_stats[1] > 0) 
+    ratio_meilleur = max([m_stats[2] / m_stats[1] for m_stats in modules.values() if m_stats[1] > 0]) 
 
     for module, m_stats in modules.items():
         if m_stats[2] / m_stats[1] == ratio_meilleur:
@@ -61,8 +61,8 @@ def analyser_modules(modules):
     # TODO 3 : Calculer les moyennes
     # - cout_moyen = somme_couts / nombre_modules
     # - temps_moyen = somme_temps / nombre_modules
-    somme_couts = math.fsum([m_stats[0]] for m_stats in modules.values())
-    somme_temps = math.fsum([m_stats[1]] for m_stats in modules.values())
+    somme_couts = math.fsum([m_stats[0] for m_stats in modules.values()])
+    somme_temps = math.fsum([m_stats[1] for m_stats in modules.values()])
 
     stats['cout_moyen'] = somme_couts / len(modules)
     stats['temps_moyen'] = somme_temps / len(modules)
@@ -94,6 +94,12 @@ def regrouper_modules_par_type(modules, types):
     #   - Ajouter le module dans la liste correspondant à son type
     #   - Créer la liste si elle n’existe pas encore
     # ⚠️ Ignorer silencieusement les modules sans type
+    for module in modules.keys():
+        if module in types:
+            if not types[module] in modules_par_type:
+                modules_par_type[types[module]] = [module]
+            else:
+                modules_par_type[types[module]].append(module)
 
     return modules_par_type
 
@@ -121,6 +127,10 @@ def calculer_cout_total(modules, interventions):
     #   - Vérifier qu’il existe dans modules
     #   - Ajouter à cout_total le cout total de maintenance du module étant donné le nombre d'interventions
     # ⚠️ Ignorer les modules absents de modules
+
+    for module, stats in modules.items():
+        if module in interventions:
+            cout_total += stats[0] * interventions.get(module)
 
     return cout_total
 
