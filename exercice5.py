@@ -60,11 +60,10 @@ def analyser_rapport(texte, mots_cles):
     # TODO 4 : borner score entre 0 et 10 (min/max)
     # TODO 5 : retourner (score, mots_trouves)
     texte_min = texte.lower()
-    liste_mots = texte_min.split()
+    liste_mots = [mot.strip('.!?,;:')  for mot in texte_min.split()]
 
     for mot in liste_mots:
-        mot = mot.strip('.') 
-        if mot in mots_cles:
+        if mot in mots_cles and not mot in mots_trouves:
             occurences = liste_mots.count(mot)
             score += occurences * mots_cles.get(mot)
             score = min(10, score)
@@ -144,13 +143,13 @@ def identifier_problemes(rapports_negatifs, mots_cles_negatifs):
         problemes[mcn] = 0
 
     for rapp_neg in rapports_negatifs:
-        texte = (rapp_neg[0] if isinstance(rapp_neg, tuple) else rapp_neg).lower()
-        liste_mots = texte.split()
+        texte = rapp_neg[0] if isinstance(rapp_neg, tuple) else rapp_neg
+        texte_min = texte.lower()
+        liste_mots = [mot.strip('.!?,;:')  for mot in texte_min.split()]
 
         for mot in liste_mots:
-            mot = mot.strip('.')
             if mot in mots_cles_negatifs:
-                problemes[mot] =+ liste_mots.count(mot)
+                problemes[mot] += 1
         
 
     return problemes
@@ -186,7 +185,17 @@ def generer_rapport_global(categories, problemes):
 
     # TODO 1 : récupérer tous les scores et calculer la moyenne (gérer le cas avec 0 rapports)
     # TODO 2 : trouver les 3 problèmes les plus fréquents sans utiliser sorted(), un tri simple type “sélection des max” est suffisant.)
-    if len(categories) == 0 and len(problemes) == 0:
+    est_vide = True
+    for cat, liste_rapp in categories.items():
+        est_vide = len(liste_rapp) == 0
+        if not est_vide:
+            break
+    
+    for mot, score in problemes.items():
+        est_vide = score == 0
+        if not est_vide:
+            break
+    if est_vide:
         return rapport
     
     score_pos = 0
@@ -202,18 +211,18 @@ def generer_rapport_global(categories, problemes):
                 rapport['nb_neutres'] = len(list_rapp)
                 score_neut = sum([score for texte, score in list_rapp])
             case 'negatifs':
-                rapport['nb_neutres'] = len(list_rapp)
+                rapport['nb_negatifs'] = len(list_rapp)
                 score_neg = sum([score for texte, score in list_rapp])
     total_rapp = sum([nb for cle, nb in rapport.items() if cle in ('nb_positifs', 'nb_neutres', 'nb_negatifs')])
-    rapport['score_moyen'] = sum([score_neg, score_neut, score_pos]) / total_rapp
+    if total_rapp > 0:
+        rapport['score_moyen'] = sum([score_neg, score_neut, score_pos]) / total_rapp
 
     copie_prob = problemes.copy()
     count = 0
-    while count < 3:
-        for prob, occurences in problemes.items():
-            if occurences == max([occ for occ in copie_prob.values()]):
-                rapport['top_problemes'].append(copie_prob.pop(prob))
-                count += 1
+    for prob, occurences in problemes.items():
+        if occurences == max([occ for occ in copie_prob.values()]) and len(rapport['top_problemes']) < 3:
+            rapport['top_problemes'].append(prob)
+            copie_prob.pop(prob)
 
     return rapport
 

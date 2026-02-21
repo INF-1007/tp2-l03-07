@@ -58,11 +58,13 @@ def verifier_ressources(ressources, besoin):
     #   - si stock actuel < quantite requise :
     #         peut_faire = False
     #         mettre à jour la liste "manquantes"
-    for ress, quant in ressources.items():
-        if ress in besoin:
-            if quant < besoin.get(ress):
-                peut_faire = False
-                manquantes.append(ress)
+    for bes, quant in besoin.items():
+        if not bes in ressources:
+            peut_faire = False
+            manquantes.append(bes)
+        elif quant > ressources.get(bes):
+            peut_faire = False
+            manquantes.append(bes)
 
 
     return peut_faire, manquantes
@@ -97,6 +99,7 @@ def mettre_a_jour_ressources(ressources, besoin, cycles=1):
     for ress, quant in nouvelles.items():
         if ress in besoin:
             quant -= besoin.get(ress) * cycles
+            nouvelles[ress] = quant
 
     return nouvelles
 
@@ -222,7 +225,6 @@ Returns:
     manques_triee = {}
     for cle in sorted(manques, key=manques.get, reverse=True):
         manques_triee[cle] = manques.get(cle)
-    
 
     for ress, manq in manques_triee.items():
         quant_req = manq
@@ -231,9 +233,9 @@ Returns:
         while cout > budget and quant_req > 0:
             cout -=  COUTS_UNITAIRES.get(ress)
             quant_req -= 1
-        
-        budget -= cout
-        achats[ress] = quant_req
+        if quant_req > 0:
+            budget -= cout  
+            achats[ress] = quant_req
 
     return achats
 

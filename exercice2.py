@@ -90,10 +90,15 @@ def trier_interventions(liste_interventions):
     # - si score_i == score_j, NE PAS échanger
     for i in range(len(interventions) - 1):
         for j in range(i + 1, len(interventions)):
-            if calculer_priorite(interventions[i]) == calculer_priorite(interventions[j]):
+            score_i = calculer_priorite(interventions[i])
+            score_j = calculer_priorite(interventions[j])
+            if score_i == score_j :
                 continue
-            elif calculer_priorite(interventions[i]) < calculer_priorite(interventions[j]):
-                interventions[i], interventions[j] = interventions[j], interventions[i]     
+            elif score_i < score_j:
+                k = j
+                while k >= i: 
+                    interventions[k], interventions[k - 1] = interventions[k - 1], interventions[k]     
+                    k -= 1
 
     return interventions
 

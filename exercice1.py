@@ -53,9 +53,10 @@ def analyser_modules(modules):
     ratio_meilleur = max([m_stats[2] / m_stats[1] for m_stats in modules.values() if m_stats[1] > 0]) 
 
     for module, m_stats in modules.items():
-        if m_stats[2] / m_stats[1] == ratio_meilleur:
-            stats['module_plus_critique'] = module
-            break
+        if m_stats[1] > 0:
+            if m_stats[2] / m_stats[1] == ratio_meilleur:
+                stats['module_plus_critique'] = module
+                break
             
 
     # TODO 3 : Calculer les moyennes

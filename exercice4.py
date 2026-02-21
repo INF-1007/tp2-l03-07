@@ -28,7 +28,7 @@ Objectifs :
 3) Trouver le meilleur équipement pour une équipe
 4) Générer un rapport d’état global
 """
-
+from copy import deepcopy
 # ------------------------------------------------------------------
 # Fonction fournie – NE PAS MODIFIER
 # ------------------------------------------------------------------
@@ -113,13 +113,17 @@ def affecter_equipement(salle, position):
     """
 
     # TODO : Faire une copie de la salle et la nommer "nouvelle"
-    nouvelle = salle[:][:]
+    nouvelle = deepcopy(salle)
     # TODO :
     # Pour la position donnée :
     #      si nouvelle[r][c] == 'D2' -> 'U2'
     #      si nouvelle[r][c] == 'D4' -> 'U4'
     ran, col = position
-    nouvelle[ran][col] = 'U2' if nouvelle[ran][col] == 'D2' else 'U4'
+    match(nouvelle[ran][col]):
+        case 'D2':
+            nouvelle[ran][col] = 'U2'
+        case 'D4':
+            nouvelle[ran][col] = 'U4'
 
     return nouvelle
 
@@ -157,7 +161,7 @@ def calculer_score_equipement(position, capacite, taille_equipe, nb_colonnes):
     # TODO 4 : bonus accès rapide
     # TODO 5 : bonus supervision
     if capacite < taille_equipe:
-        return score
+        return -1
     
     score = 100
     score -= 10 * (capacite - taille_equipe)
@@ -207,8 +211,8 @@ def trouver_meilleur_equipement(salle, taille_equipe):
                 capac = int(salle[i][j][-1])
                 pos = (i, j)
                 score = calculer_score_equipement(pos, capac, taille_equipe, len(salle[i]))
-                if meilleur is None and not score == -1:
-                    meilleur = (pos, capac)
+                if meilleur is None:
+                    meilleur = (pos, capac) if not score == -1 else None
                 elif score > calculer_score_equipement(meilleur[0], int(salle[pos[0]][pos[1]][-1]), taille_equipe, len(salle[pos[0]])):
                     meilleur = (pos, capac)
 
@@ -262,11 +266,11 @@ def generer_rapport_etat(salle):
                 case 'M4':
                     rapport['maintenance_4'] += 1
     
-    utilises = sum([equip for cle, equip in rapport.items() if cle in ('utilises_2', 'utilises_4') ])
-    maintenance = sum([equip for cle, equip in rapport.items() if cle in ('maintenance_2', 'maintenance_4') ])
     total_equip = sum([equip for equip in rapport.values()])
-
-    rapport['taux_indisponibilite'] = (utilises + maintenance) / total_equip
+    if total_equip > 0:
+        utilises = sum([equip for cle, equip in rapport.items() if cle in ('utilises_2', 'utilises_4') ])
+        maintenance = sum([equip for cle, equip in rapport.items() if cle in ('maintenance_2', 'maintenance_4') ])
+        rapport['taux_indisponibilite'] = (utilises + maintenance) / total_equip
 
 
     return rapport
