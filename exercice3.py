@@ -58,6 +58,14 @@ def verifier_ressources(ressources, besoin):
     #   - si stock actuel < quantite requise :
     #         peut_faire = False
     #         mettre à jour la liste "manquantes"
+    for bes, quant in besoin.items():
+        if not bes in ressources:
+            peut_faire = False
+            manquantes.append(bes)
+        elif quant > ressources.get(bes):
+            peut_faire = False
+            manquantes.append(bes)
+
 
     return peut_faire, manquantes
 
@@ -88,6 +96,10 @@ def mettre_a_jour_ressources(ressources, besoin, cycles=1):
     #   - calculer la consommation
     #   - mettre à jour le dictionnaire "nouvelles"
     # (On suppose que les données fournies sont cohérentes; pas besoin de borner à 0)
+    for ress, quant in nouvelles.items():
+        if ress in besoin:
+            quant -= besoin.get(ress) * cycles
+            nouvelles[ress] = quant
 
     return nouvelles
 
@@ -122,6 +134,9 @@ def generer_alertes_ressources(ressources, seuil=50):
     #   - si stock < seuil :
     #         calculer a_commander
     #         mettre à jour alertes
+    for ress, quant in ressources.items():
+        if quant < seuil:
+            alertes[ress] = (quant, niveau_cible - quant)
 
     return alertes
 
@@ -155,6 +170,14 @@ def calculer_cycles_possibles(ressources, consommations):
     #   - une ressource est considérée valide si conso > 0
     #   - si aucune ressource valide (toutes conso==0), décider nb_cycles=0 
     #   - mettre à jour "possibles"
+    for act, consom in consommations.items():
+        nb_cycles = 0
+        for ress, quant in ressources.items():
+            if ress in consom and consom.get(ress) > 0:
+                nb_cycles += quant // consom.get(ress)
+        
+        possibles[act] = nb_cycles
+
 
     return possibles
 
@@ -194,6 +217,25 @@ Returns:
     # TODO 3 : Parcourir les ressources par priorité :
     #          - calculer la quantite max achetable
     #          - acheter la quantite requise et soustraire du budget
+    manques = {}
+
+    for ress, bes in besoins_prevus.items():
+        manques[ress] = bes - ressources.get(ress)
+
+    manques_triee = {}
+    for cle in sorted(manques, key=manques.get, reverse=True):
+        manques_triee[cle] = manques.get(cle)
+
+    for ress, manq in manques_triee.items():
+        quant_req = manq
+        cout = COUTS_UNITAIRES.get(ress) * manq
+        
+        while cout > budget and quant_req > 0:
+            cout -=  COUTS_UNITAIRES.get(ress)
+            quant_req -= 1
+        if quant_req > 0:
+            budget -= cout  
+            achats[ress] = quant_req
 
     return achats
 
