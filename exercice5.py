@@ -25,7 +25,7 @@ Règles générales :
 - Un mot-clé peut apparaître plusieurs fois : chaque occurrence compte
 - Le score final est borné entre 0 et 10
 """
-
+from math import ceil, floor
 # -------------------------------------------------------------
 # 1) Analyser un rapport
 # -------------------------------------------------------------
@@ -59,6 +59,19 @@ def analyser_rapport(texte, mots_cles):
     #    - si occurrences > 0 : ajouter le mot à mots_trouves (sans doublons)
     # TODO 4 : borner score entre 0 et 10 (min/max)
     # TODO 5 : retourner (score, mots_trouves)
+    texte_min = texte.lower()
+    liste_mots = texte_min.split()
+
+    for mot in liste_mots:
+        mot = mot.strip('.') 
+        if mot in mots_cles:
+            occurences = liste_mots.count(mot)
+            score += occurences * mots_cles.get(mot)
+            score = min(10, score)
+            score = max(score, 0)
+
+            if occurences > 0 and not mot in mots_trouves:
+                mots_trouves.append(mot) 
 
     return score, mots_trouves
 
@@ -92,6 +105,14 @@ def categoriser_rapports(rapports, mots_cles):
     # Pour chaque texte :
     #   - faire une analyse du rapport pour en tirer le score
     #   - mettre à jour "categories"
+    for rapport in rapports:
+        score = analyser_rapport(rapport, mots_cles)[0]
+        if score >= 7:
+            categories['positifs'].append((rapport, score))
+        elif 4 <= score <= 6:
+            categories['neutres'].append((rapport, score))
+        else:
+            categories['negatifs'].append((rapport, score))
 
     return categories
 
@@ -119,6 +140,18 @@ def identifier_problemes(rapports_negatifs, mots_cles_negatifs):
     #   - analyser le texte (minuscules + split)
     #   - compter les occurrences de chaque mot_negatif
     #   - incrémenter problemes[mot]
+    for mcn in mots_cles_negatifs.keys():
+        problemes[mcn] = 0
+
+    for rapp_neg in rapports_negatifs:
+        texte = (rapp_neg[0] if isinstance(rapp_neg, tuple) else rapp_neg).lower()
+        liste_mots = texte.split()
+
+        for mot in liste_mots:
+            mot = mot.strip('.')
+            if mot in mots_cles_negatifs:
+                problemes[mot] =+ liste_mots.count(mot)
+        
 
     return problemes
 
@@ -153,6 +186,34 @@ def generer_rapport_global(categories, problemes):
 
     # TODO 1 : récupérer tous les scores et calculer la moyenne (gérer le cas avec 0 rapports)
     # TODO 2 : trouver les 3 problèmes les plus fréquents sans utiliser sorted(), un tri simple type “sélection des max” est suffisant.)
+    if len(categories) == 0 and len(problemes) == 0:
+        return rapport
+    
+    score_pos = 0
+    score_neut = 0
+    score_neg = 0
+
+    for categorie, list_rapp in categories.items():
+        match(categorie):
+            case 'positifs':
+                rapport['nb_positifs'] = len(list_rapp)
+                score_pos = sum([score for texte, score in list_rapp])
+            case 'neutres':
+                rapport['nb_neutres'] = len(list_rapp)
+                score_neut = sum([score for texte, score in list_rapp])
+            case 'negatifs':
+                rapport['nb_neutres'] = len(list_rapp)
+                score_neg = sum([score for texte, score in list_rapp])
+    total_rapp = sum([nb for cle, nb in rapport.items() if cle in ('nb_positifs', 'nb_neutres', 'nb_negatifs')])
+    rapport['score_moyen'] = sum([score_neg, score_neut, score_pos]) / total_rapp
+
+    copie_prob = problemes.copy()
+    count = 0
+    while count < 3:
+        for prob, occurences in problemes.items():
+            if occurences == max([occ for occ in copie_prob.values()]):
+                rapport['top_problemes'].append(copie_prob.pop(prob))
+                count += 1
 
     return rapport
 
@@ -185,6 +246,18 @@ def calculer_tendance(historique_scores):
     # - Gérer les cas vides / 1 élément
     # - Couper en deux moitiés
     # - Comparer les moyennes
+    if len(historique_scores) in [0, 1]:
+        return 'stable'
+    moitie = len(historique_scores) / 2
+    histo_avant = historique_scores[0:floor(moitie)]
+    histo_apres = historique_scores[ceil(moitie):len(historique_scores)]
+    if (sum(histo_avant) / len(histo_avant)) < (sum(histo_apres) / len(histo_apres)):
+        return 'amelioration'
+    elif (sum(histo_avant) / len(histo_avant)) > (sum(histo_apres) / len(histo_apres)):
+        return 'degradation'
+    else:
+        return 'stable'
+
 
 
 # -------------------------------------------------------------
