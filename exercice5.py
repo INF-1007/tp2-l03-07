@@ -53,11 +53,26 @@ def analyser_rapport(texte, mots_cles):
     mots_trouves = []
 
     # TODO 1 : normaliser texte (minuscules)
+    texte = texte.lower()
+    
     # TODO 2 : découper en mots. Attention aussi à enlever la ponctuation basique aux extrémités (utiliser la fonction strip())S.
+    mots = [] 
+    for mot in texte.split():
+        mot = mot.strip(".,;:!?()[]{}") 
+        mots.append(mot)
+
     # TODO 3 : pour chaque mot-clé :
     #    - mettre à jour le score
     #    - si occurrences > 0 : ajouter le mot à mots_trouves (sans doublons)
+    for mot_cle, val in mots_cles.items(): 
+        occ = mots.count(mot_cle) 
+        if occ > 0: 
+            score += occ * val 
+            if mot_cle not in mots_trouves: 
+                mots_trouves.append(mot_cle)
     # TODO 4 : borner score entre 0 et 10 (min/max)
+    score = max(0, min(10, score))
+
     # TODO 5 : retourner (score, mots_trouves)
 
     return score, mots_trouves
@@ -92,7 +107,13 @@ def categoriser_rapports(rapports, mots_cles):
     # Pour chaque texte :
     #   - faire une analyse du rapport pour en tirer le score
     #   - mettre à jour "categories"
-
+    for texte in rapports: 
+        score, _ = analyser_rapport(texte, mots_cles) 
+        if score >= 7: 
+            categories['positifs'].append((texte, score)) 
+        elif score <= 3: 
+            categories['negatifs'].append((texte, score)) 
+        else: categories['neutres'].append((texte, score))
     return categories
 
 
@@ -111,7 +132,7 @@ def identifier_problemes(rapports_negatifs, mots_cles_negatifs):
     Returns:
         dict: {mot_negatif: nombre_occurrences_total}
     """
-    problemes = {}
+    problemes = {mot: 0 for mot in mots_cles_negatifs}
 
     # TODO 1 : initialiser problemes avec 0 pour chaque mot négatif
     # TODO 2 : parcourir les rapports négatifs :
@@ -119,6 +140,17 @@ def identifier_problemes(rapports_negatifs, mots_cles_negatifs):
     #   - analyser le texte (minuscules + split)
     #   - compter les occurrences de chaque mot_negatif
     #   - incrémenter problemes[mot]
+    for element in rapports_negatifs: 
+        texte = element[0] if isinstance(element, tuple) else element 
+        texte = texte.lower() 
+        
+        mots = [] 
+        for mot in texte.split(): 
+            mot = mot.strip(".,;:!?()[]{}") 
+            mots.append(mot) 
+            
+        for mot_neg in mots_cles_negatifs: 
+            problemes[mot_neg] += mots.count(mot_neg)
 
     return problemes
 
@@ -152,8 +184,25 @@ def generer_rapport_global(categories, problemes):
     }
 
     # TODO 1 : récupérer tous les scores et calculer la moyenne (gérer le cas avec 0 rapports)
-    # TODO 2 : trouver les 3 problèmes les plus fréquents sans utiliser sorted(), un tri simple type “sélection des max” est suffisant.)
+    tous_scores = ( [s for (_, s) in categories['positifs']] + [s for (_, s) in categories['neutres']] + [s for (_, s) in categories['negatifs']])
 
+    if len(tous_scores) > 0: 
+        rapport['score_moyen'] = sum(tous_scores) / len(tous_scores)
+
+    # TODO 2 : trouver les 3 problèmes les plus fréquents sans utiliser sorted(), un tri simple type “sélection des max” est suffisant.)
+    temp = problemes.copy() 
+    for _ in range(3): 
+        if len(temp) == 0: 
+            break 
+        max_mot = None 
+        max_val = -1 
+        for mot, val in temp.items(): 
+            if val > max_val: 
+                max_val = val 
+                max_mot = mot 
+        if max_mot is not None: 
+            rapport['top_problemes'].append(max_mot) 
+            del temp[max_mot]
     return rapport
 
 
@@ -185,6 +234,22 @@ def calculer_tendance(historique_scores):
     # - Gérer les cas vides / 1 élément
     # - Couper en deux moitiés
     # - Comparer les moyennes
+    if len(historique_scores) <= 1: 
+        return 'stable' 
+    n = len(historique_scores) 
+    mid = n // 2
+
+    premiere = historique_scores[:mid] 
+    seconde = historique_scores[mid:] 
+    
+    moy1 = sum(premiere) / len(premiere) 
+    moy2 = sum(seconde) / len(seconde) 
+    
+    if moy2 > moy1: 
+        return 'amelioration' 
+    elif moy2 < moy1: 
+        return 'degradation' 
+    else: return 'stable'
 
 
 # -------------------------------------------------------------

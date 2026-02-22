@@ -69,11 +69,17 @@ def initialiser_salle(nb_rangees, nb_colonnes, positions_equipements):
 
     # TODO 1 :
     # Créer une grille nb_rangees × nb_colonnes remplie de 'X'
+    salle = [['X' for _ in range(nb_colonnes)] for _ in range(nb_rangees)]
 
     # TODO 2 :
     # Pour chaque equipement (voir sa position) :
     #   - si capacite == 2, X -> 'D2'
     #   - si capacite == 4, X -> 'D4'
+    for r, c, capacite in positions_equipements:
+        if capacite == 2:
+            salle[r][c] = 'D2'
+        elif capacite == 4:
+            salle[r][c] = 'D4'
 
     return salle
 
@@ -101,11 +107,18 @@ def affecter_equipement(salle, position):
     """
 
     # TODO : Faire une copie de la salle et la nommer "nouvelle"
+    nouvelle = [ligne[:] for ligne in salle]
 
     # TODO :
     # Pour la position donnée :
     #      si nouvelle[r][c] == 'D2' -> 'U2'
     #      si nouvelle[r][c] == 'D4' -> 'U4'
+    r, c = position
+
+    if nouvelle[r][c] == 'D2':
+        nouvelle[r][c] = 'U2'
+    elif nouvelle[r][c] == 'D4':
+        nouvelle[r][c] = 'U4'
 
     return nouvelle
 
@@ -138,10 +151,25 @@ def calculer_score_equipement(position, capacite, taille_equipe, nb_colonnes):
     score = 0
 
     # TODO 1 : gérer le cas équipement trop petit
+    if capacite < taille_equipe:
+        return -1
+    
     # TODO 2 : score de base
+    score = 100
+    
     # TODO 3 : pénalité gaspillage
+    places_vides = capacite - taille_equipe
+    score -= 10 * places_vides
+
+    r, c = position
+
     # TODO 4 : bonus accès rapide
+    if c == 0 or c == nb_colonnes - 1:
+        score += 20
+
     # TODO 5 : bonus supervision
+    if r < 3:
+        score += 5
 
     return score
 
@@ -176,6 +204,23 @@ def trouver_meilleur_equipement(salle, taille_equipe):
     #       extraire capacite depuis la chaîne
     #       calculer le score
     #       comparer au meilleur
+    meilleur_score = -1
+    #meilleur = None
+    nb_colonnes = len(salle[0])
+
+    for r in range(len(salle)):
+        for c in range(len(salle[0])):
+
+            case = salle[r][c]
+
+            if case == 'D2' or case == 'D4':
+
+                capacite = int(case[1])
+                score = calculer_score_equipement((r, c), capacite, taille_equipe, nb_colonnes)
+
+                if score > meilleur_score:
+                    meilleur_score = score
+                    meilleur = ((r, c), capacite)
 
     return meilleur
 
@@ -210,8 +255,46 @@ def generer_rapport_etat(salle):
     }
 
     # TODO 1 : parcourir la grille et compter chaque type
-    # TODO 2 : calculer le taux (gérer division par zéro)
+    total_equipements = 0
+    indisponibles = 0
 
+    for ligne in salle:
+        for case in ligne:
+
+            if case == 'D2':
+                rapport['disponibles_2'] += 1
+                total_equipements += 1
+
+            elif case == 'D4':
+                rapport['disponibles_4'] += 1
+                total_equipements += 1
+
+            elif case == 'U2':
+                rapport['utilises_2'] += 1
+                total_equipements += 1
+                indisponibles += 1
+
+            elif case == 'U4':
+                rapport['utilises_4'] += 1
+                total_equipements += 1
+                indisponibles += 1
+
+            elif case == 'M2':
+                rapport['maintenance_2'] += 1
+                total_equipements += 1
+                indisponibles += 1
+
+            elif case == 'M4':
+                rapport['maintenance_4'] += 1
+                total_equipements += 1
+                indisponibles += 1
+                
+    # TODO 2 : calculer le taux (gérer division par zéro)
+    if total_equipements > 0:
+        rapport['taux_indisponibilite'] = indisponibles / total_equipements
+    else:
+        rapport['taux_indisponibilite'] = 0.0
+    
     return rapport
 
 # -------------------------------------------------------------------
